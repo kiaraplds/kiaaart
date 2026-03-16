@@ -268,11 +268,11 @@ function App() {
             >
               Kiaaart
             </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <p className="text-xs text-warm-400 font-light tracking-wide hidden sm:block mr-2">
+            <p className="text-xs text-warm-400 font-light tracking-wide hidden sm:block ml-1">
               your personal art curator
             </p>
+          </div>
+          <div className="flex items-center gap-2">
             {/* Collection toggle */}
             <button
               onClick={() => setCollectionOpen(!collectionOpen)}
