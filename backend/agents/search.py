@@ -138,14 +138,25 @@ async def search_for_artwork(room_analysis: dict, preferences: dict) -> dict:
         if recs.get("avoid"):
             brief += f"Avoid: {', '.join(recs['avoid'])}\n"
 
+    location = preferences.get('location', 'UK')
+    region_platforms = {
+        'UK': 'Saatchi Art, King & McGaw, Desenio UK, Etsy UK',
+        'Europe': 'Desenio, Juniqe, Etsy EU',
+        'US': 'Saatchi Art, Minted, Society6, Etsy US',
+        'Australia': 'Bluethumb, Saatchi Art, Etsy AU',
+        'Global': 'Saatchi Art, Etsy, King & McGaw, Desenio',
+    }
+    platforms = region_platforms.get(location, region_platforms['UK'])
+
     brief += f"\nBudget: {preferences.get('budget', 'not specified')}\n"
     brief += f"Style: {preferences.get('style', 'open to suggestions')}\n"
-    brief += f"Location: {preferences.get('location', 'UK')}\n"
+    brief += f"Location: {location}\n"
     brief += (
-        "\nFind 4-6 real artworks available to buy online that would work in this space. "
-        "Search Saatchi Art, Etsy, King & McGaw, Desenio, or other art sites. "
+        f"\nFind 4-6 real artworks available to buy online that would work in this space. "
+        f"Search these {location} platforms: {platforms}. "
+        "Include the region in your search queries for relevant results. "
         "For each artwork you find, use take_notes to save it with details: "
-        "title, artist, price, size, url, platform, and why_it_fits. "
+        "title, artist, price (in local currency), size, url, platform, and why_it_fits. "
         "Stay within the budget. When you have 4-6 good options, stop searching "
         "and present your final recommendations."
     )

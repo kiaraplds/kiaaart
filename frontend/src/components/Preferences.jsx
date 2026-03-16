@@ -2,10 +2,12 @@ import { useState } from 'react'
 
 const BUDGETS = ['Under £50', '£50–150', '£150–300', '£300–500', '£500+']
 const STYLES = ['Abstract', 'Botanical', 'Photography', 'Minimalist', 'Figurative', 'Landscape', 'Line Drawing', 'Mixed Media']
+const LOCATIONS = ['UK', 'Europe', 'US', 'Australia', 'Global']
 
 export default function Preferences({ analysis, onSearch, onChat, messages }) {
   const [budget, setBudget] = useState('£50–150')
   const [selectedStyles, setSelectedStyles] = useState([])
+  const [location, setLocation] = useState('UK')
   const [chatInput, setChatInput] = useState('')
 
   const recs = analysis?.art_recommendations || {}
@@ -22,7 +24,7 @@ export default function Preferences({ analysis, onSearch, onChat, messages }) {
       style: selectedStyles.length > 0 ? selectedStyles.join(', ') : recs.suggested_styles?.join(', ') || 'open to suggestions',
       colours: recs.suggested_colour_palette?.join(', ') || 'as recommended',
       size: recs.suggested_sizes?.join(', ') || 'as recommended',
-      location: 'UK',
+      location,
     })
   }
 
@@ -55,6 +57,26 @@ export default function Preferences({ analysis, onSearch, onChat, messages }) {
               }`}
             >
               {b}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Location */}
+      <div>
+        <label className="text-xs uppercase tracking-wider text-[#666] block mb-2">Location</label>
+        <div className="flex flex-wrap gap-2">
+          {LOCATIONS.map(loc => (
+            <button
+              key={loc}
+              onClick={() => setLocation(loc)}
+              className={`px-3 py-1.5 rounded-full text-sm transition-all ${
+                location === loc
+                  ? 'bg-amber-500 text-black font-medium'
+                  : 'bg-[#1a1a1a] text-[#999] border border-[#333] hover:border-[#555]'
+              }`}
+            >
+              {loc}
             </button>
           ))}
         </div>
