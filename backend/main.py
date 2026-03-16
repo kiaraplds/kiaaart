@@ -1,12 +1,15 @@
 """
-WallWise — Complete FastAPI Backend
+Kiaaart — Complete FastAPI Backend
 All endpoints: health, room analysis, art search, chat, TTS, history
 """
 
 import os
 import uuid
 import base64
+import io
 from fastapi import FastAPI, UploadFile, File, HTTPException
+from PIL import Image
+import pillow_heif
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +17,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
+
+pillow_heif.register_heif_opener()
 
 from agents.vision import analyse_room
 from agents.search import search_for_artwork
@@ -25,7 +30,7 @@ from database import save_session, save_search_results, get_session, get_all_ses
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-app = FastAPI(title="WallWise API", version="1.0.0")
+app = FastAPI(title="Kiaaart API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,23 +47,37 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 # ── Health ──────────────────────────────────────────────────────────
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "service": "wallwise"}
+    return {"status": "healthy", "service": "kiaaart"}
 
 
 # ── Room Analysis (Vision Agent) ────────────────────────────────────
 @app.post("/api/analyse-room")
 async def analyse_room_endpoint(file: UploadFile = File(...)):
     """Upload a room photo → get AI analysis and save to history."""
-    if not file.content_type or not file.content_type.startswith("image/"):
+    ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
+    ct = (file.content_type or "").lower()
+    ext_lower = os.path.splitext(file.filename or "")[1].lower()
+
+    if not ct.startswith("image/") and ext_lower not in (".heic", ".heif"):
         raise HTTPException(400, "Please upload an image file.")
 
     contents = await file.read()
     if len(contents) > 10 * 1024 * 1024:
         raise HTTPException(400, "Image too large. Max 10MB.")
 
+    # Convert HEIC/HEIF to JPEG for API compatibility
+    is_heic = ct in ("image/heic", "image/heif") or ext_lower in (".heic", ".heif")
+    if is_heic:
+        img = Image.open(io.BytesIO(contents))
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, format="JPEG", quality=90)
+        contents = buf.getvalue()
+        ct = "image/jpeg"
+        ext_lower = ".jpg"
+
     # Save the image to disk
     session_id = str(uuid.uuid4())[:8]
-    ext = os.path.splitext(file.filename or "photo.jpg")[1] or ".jpg"
+    ext = ext_lower if ext_lower else os.path.splitext(file.filename or "photo.jpg")[1] or ".jpg"
     image_filename = f"{session_id}{ext}"
     image_path = os.path.join(UPLOAD_DIR, image_filename)
 
@@ -67,7 +86,7 @@ async def analyse_room_endpoint(file: UploadFile = File(...)):
 
     # Analyse with Vision Agent
     base64_image = base64.b64encode(contents).decode("utf-8")
-    media_type = file.content_type or "image/jpeg"
+    media_type = ct or "image/jpeg"
 
     try:
         analysis = await analyse_room(base64_image, media_type)
@@ -131,7 +150,7 @@ class ChatMessage(BaseModel):
 
 @app.post("/api/chat")
 async def chat_endpoint(payload: ChatMessage):
-    """Chat with the WallWise art advisor."""
+    """Chat with the Kiaaart art advisor."""
     try:
         return await conversation_manager(
             message=payload.message,

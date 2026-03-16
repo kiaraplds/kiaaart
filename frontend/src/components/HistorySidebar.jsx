@@ -2,9 +2,8 @@ import { useState, useEffect } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-export default function HistorySidebar({ onLoadSession, currentSessionId }) {
+export default function HistorySidebar({ isOpen, onToggle, onLoadSession, onNewChat, currentSessionId }) {
   const [sessions, setSessions] = useState([])
-  const [isOpen, setIsOpen] = useState(false)
 
   const fetchHistory = async () => {
     try {
@@ -51,66 +50,79 @@ export default function HistorySidebar({ onLoadSession, currentSessionId }) {
     return 'Room analysis'
   }
 
-  if (sessions.length === 0) return null
+  if (!isOpen) return null
+
+  const handleSidebarClick = (e) => {
+    // Close only if clicking empty space, not buttons/links/sessions
+    if (e.target === e.currentTarget) onToggle()
+  }
 
   return (
-    <>
-      {/* Toggle button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 right-4 z-50 p-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-[#888] hover:text-white hover:border-[#555] transition-all"
-        title="History"
-      >
-        <span className="text-sm">🕐 {sessions.length}</span>
-      </button>
+    <div className="w-72 h-screen flex flex-col bg-white border-r border-warm-200/60 shrink-0" onClick={handleSidebarClick}>
+      {/* Sidebar Header */}
+      <div className="h-14 px-6 border-b border-warm-200/60 flex items-center justify-between shrink-0">
+        <p className="font-display text-lg font-semibold text-warm-800 italic">History</p>
+        <button
+          onClick={onToggle}
+          className="p-1.5 hover:bg-warm-100 rounded-lg transition-colors text-warm-400"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-      {/* Sidebar */}
-      {isOpen && (
-        <div className="fixed top-0 right-0 h-full w-80 bg-[#141414] border-l border-[#222] z-40 overflow-y-auto shadow-2xl">
-          <div className="p-4 border-b border-[#222] flex items-center justify-between">
-            <h3 className="font-display text-lg font-semibold">Previous Rooms</h3>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-[#666] hover:text-white"
-            >
-              ✕
-            </button>
-          </div>
+      {/* New Chat */}
+      <div className="px-3 py-3">
+        <button
+          onClick={onNewChat}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-warm-600 hover:bg-warm-50 border border-warm-200/60 hover:border-warm-300 transition-all"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          New conversation
+        </button>
+      </div>
 
-          <div className="p-2 space-y-1">
+      {/* Sessions */}
+      <div className="flex-1 overflow-y-auto px-3 pb-3" onClick={handleSidebarClick}>
+        {sessions.length === 0 ? (
+          <p className="text-xs text-warm-300 text-center mt-8 px-4 leading-relaxed">
+            Your past conversations will appear here
+          </p>
+        ) : (
+          <div className="space-y-0.5">
             {sessions.map(session => (
               <div
                 key={session.id}
-                onClick={() => {
-                  onLoadSession(session)
-                  setIsOpen(false)
-                }}
-                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all group ${
+                onClick={() => onLoadSession(session)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all group ${
                   session.id === currentSessionId
-                    ? 'bg-amber-500/10 border border-amber-500/30'
-                    : 'hover:bg-[#1e1e1e]'
+                    ? 'bg-warm-100/80 border border-warm-200/60'
+                    : 'hover:bg-warm-50'
                 }`}
               >
                 {/* Thumbnail */}
                 {session.room_image_path ? (
                   <img
                     src={`${API_URL}/uploads/${session.room_image_path}`}
-                    alt="Room"
-                    className="w-12 h-12 rounded-lg object-cover shrink-0"
+                    alt=""
+                    className="w-9 h-9 rounded-lg object-cover shrink-0 border border-warm-200/40"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-lg bg-[#252525] flex items-center justify-center shrink-0 text-xl">
-                    🖼
+                  <div className="w-9 h-9 rounded-lg bg-warm-100 flex items-center justify-center shrink-0">
+                    <span className="text-warm-400 text-sm font-display italic">K</span>
                   </div>
                 )}
 
                 {/* Details */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#ccc] truncate">{getLabel(session)}</p>
-                  <p className="text-xs text-[#666]">
+                  <p className="text-sm text-warm-700 truncate">{getLabel(session)}</p>
+                  <p className="text-[11px] text-warm-400">
                     {formatDate(session.created_at)}
-                    {session.artworks && session.artworks.length > 0 && (
-                      <span className="ml-1">· {session.artworks.length} artworks</span>
+                    {session.artworks?.length > 0 && (
+                      <span> · {session.artworks.length} pieces</span>
                     )}
                   </p>
                 </div>
@@ -118,15 +130,24 @@ export default function HistorySidebar({ onLoadSession, currentSessionId }) {
                 {/* Delete */}
                 <button
                   onClick={(e) => handleDelete(e, session.id)}
-                  className="opacity-0 group-hover:opacity-100 text-[#555] hover:text-red-400 transition-all text-xs"
+                  className="opacity-0 group-hover:opacity-100 p-1 text-warm-300 hover:text-red-400 transition-all"
                 >
-                  ✕
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             ))}
           </div>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-warm-200/40">
+        <p className="text-[10px] text-warm-300 text-center tracking-wide">
+          Curated by AI, chosen by you
+        </p>
+      </div>
+    </div>
   )
 }

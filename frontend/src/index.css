@@ -3,11 +3,65 @@
 @tailwind utilities;
 
 body {
-  background-color: #0f0f0f;
-  color: #e8e8e8;
+  background-color: #FAF7F2;
+  color: #2A211A;
+  font-size: 16px;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #1a1a1a; }
-::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+html {
+  font-size: 112%;
+}
+
+/* Elegant scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D4C4A8; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #B8A080; }
+
+/* Loading dots — bouncing wave */
+@keyframes bounce-wave {
+  0%, 100% {
+    transform: translateY(0);
+    background-color: #A3BBA3;
+  }
+  50% {
+    transform: translateY(-10px);
+    background-color: #3A5239;
+  }
+}
+
+.loading-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  background-color: #A3BBA3;
+  animation: bounce-wave 1.2s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* Upload button shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.btn-shimmer {
+  background-size: 200% auto;
+  background-image: linear-gradient(
+    90deg,
+    #3A5239 0%,
+    #5C7F5C 25%,
+    #3A5239 50%,
+    #5C7F5C 75%,
+    #3A5239 100%
+  );
+  animation: shimmer 3s linear infinite;
+}

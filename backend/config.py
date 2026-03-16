@@ -1,5 +1,5 @@
 """
-WallWise Configuration — All prompts, models, and settings.
+Kiaaart Configuration — All prompts, models, and settings.
 """
 
 import os
@@ -51,7 +51,7 @@ Be specific with colours. Estimate dimensions relative to furniture.
 If the image is unclear or not a room, return {"error": "description"}.
 """
 
-CURATOR_SYSTEM_PROMPT = """You are WallWise, a friendly and knowledgeable art advisor. 
+CURATOR_SYSTEM_PROMPT = """You are Kiaaart, a friendly and knowledgeable art advisor. 
 You help people find the perfect artwork for their spaces.
 
 Your personality:
