@@ -39,51 +39,65 @@ export default function SavedCollection({ isOpen, onToggle, savedArtworks, onRem
             {savedArtworks.map((artwork, i) => (
               <div
                 key={artwork._id || i}
-                className="p-3 bg-warm-50/50 border border-warm-200/40 rounded-xl group hover:border-warm-300 transition-all"
+                className="bg-warm-50/50 border border-warm-200/40 rounded-xl group hover:border-warm-300 transition-all overflow-hidden"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-display text-sm font-semibold text-warm-800 leading-snug truncate">
-                      {artwork.title || 'Untitled'}
-                    </h4>
-                    {artwork.artist && (
-                      <p className="text-[11px] text-warm-400 truncate">{artwork.artist}</p>
+                {/* Thumbnail */}
+                {artwork.image_url && (
+                  <div className="w-full h-24 bg-warm-100 overflow-hidden">
+                    <img
+                      src={artwork.image_url}
+                      alt={artwork.title || 'Artwork'}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.target.parentElement.style.display = 'none' }}
+                    />
+                  </div>
+                )}
+
+                <div className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-display text-sm font-semibold text-warm-800 leading-snug truncate">
+                        {artwork.title || 'Untitled'}
+                      </h4>
+                      {artwork.artist && (
+                        <p className="text-[11px] text-warm-400 truncate">{artwork.artist}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => onRemove(artwork._id)}
+                      className="p-1 text-warm-300 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
+                      title="Remove"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1 mt-1.5">
+                    {artwork.price && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-green-50 border border-green-200/60 rounded-full text-green-700">
+                        {artwork.price}
+                      </span>
+                    )}
+                    {artwork.platform && (
+                      <span className="text-[10px] px-1.5 py-0.5 bg-warm-100 rounded-full text-warm-500">
+                        {artwork.platform}
+                      </span>
                     )}
                   </div>
-                  <button
-                    onClick={() => onRemove(artwork._id)}
-                    className="p-1 text-warm-300 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0"
-                    title="Remove"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
 
-                <div className="flex flex-wrap gap-1 mt-1.5">
-                  {artwork.price && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-green-50 border border-green-200/60 rounded-full text-green-700">
-                      {artwork.price}
-                    </span>
-                  )}
-                  {artwork.platform && (
-                    <span className="text-[10px] px-1.5 py-0.5 bg-warm-100 rounded-full text-warm-500">
-                      {artwork.platform}
-                    </span>
+                  {artwork.url && (
+                    <a
+                      href={artwork.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mt-2 text-[11px] font-medium text-warm-500 hover:text-warm-700 transition-colors underline underline-offset-2 decoration-warm-200"
+                    >
+                      View artwork
+                    </a>
                   )}
                 </div>
-
-                {artwork.url && (
-                  <a
-                    href={artwork.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block mt-2 text-[11px] font-medium text-warm-500 hover:text-warm-700 transition-colors underline underline-offset-2 decoration-warm-200"
-                  >
-                    View artwork
-                  </a>
-                )}
               </div>
             ))}
           </div>

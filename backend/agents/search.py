@@ -34,7 +34,7 @@ SEARCH_TOOLS = [
         "description": (
             "Save a found artwork to your shortlist, or list all saved. "
             "When saving, include all details as a JSON string with fields: "
-            "title, artist, price, size, url, platform, why_it_fits"
+            "title, artist, price, size, url, image_url, platform, why_it_fits"
         ),
         "input_schema": {
             "type": "object",
@@ -140,11 +140,11 @@ async def search_for_artwork(room_analysis: dict, preferences: dict) -> dict:
 
     location = preferences.get('location', 'UK')
     region_platforms = {
-        'UK': 'Saatchi Art, King & McGaw, Desenio UK, Etsy UK',
-        'Europe': 'Desenio, Juniqe, Etsy EU',
-        'US': 'Saatchi Art, Minted, Society6, Etsy US',
-        'Australia': 'Bluethumb, Saatchi Art, Etsy AU',
-        'Global': 'Saatchi Art, Etsy, King & McGaw, Desenio',
+        'UK': 'Saatchi Art, King & McGaw, Etsy UK, Rise Art, Artfinder, Poster Store UK, LUMAS, Artsy, Partnership Editions',
+        'Europe': 'Desenio, Juniqe, Etsy EU, Artsy, LUMAS, Saatchi Art, Poster Store, YellowKorner',
+        'US': 'Saatchi Art, Minted, Society6, Etsy US, Artsy, Tappan Collective, 20x200, Uprise Art, Artfinder',
+        'Australia': 'Bluethumb, Saatchi Art, Etsy AU, Art Lovers Australia, Urban Road, Artsy',
+        'Global': 'Saatchi Art, Etsy, Artsy, Artfinder, LUMAS, King & McGaw, Tappan Collective',
     }
     platforms = region_platforms.get(location, region_platforms['UK'])
 
@@ -153,11 +153,16 @@ async def search_for_artwork(room_analysis: dict, preferences: dict) -> dict:
     brief += f"Location: {location}\n"
     brief += (
         f"\nFind 4-6 real artworks available to buy online that would work in this space. "
-        f"Search these {location} platforms: {platforms}. "
+        f"Search across MULTIPLE platforms from: {platforms}. "
+        "Use at least 3-4 different platforms — do NOT get all results from one site. "
         "Include the region in your search queries for relevant results. "
-        "For each artwork you find, use take_notes to save it with details: "
-        "title, artist, price (in local currency), size, url, platform, and why_it_fits. "
-        "Stay within the budget. When you have 4-6 good options, stop searching "
+        "For each artwork you find, use take_notes to save it with details as JSON: "
+        "title, artist, price (in local currency), size, url, image_url (direct link to artwork image), platform, and why_it_fits. "
+        f"BUDGET IS A HARD LIMIT: {preferences.get('budget', 'not specified')}. "
+        "Do NOT include any artwork that exceeds the budget. "
+        "Do NOT default to botanical/plant art unless specifically requested. "
+        "Offer diverse styles and artists. "
+        "When you have 4-6 good options from varied platforms, stop searching "
         "and present your final recommendations."
     )
 

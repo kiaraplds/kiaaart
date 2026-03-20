@@ -7,7 +7,7 @@ import os
 import uuid
 import base64
 import io
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, Query, HTTPException
 from PIL import Image
 import pillow_heif
 from fastapi.middleware.cors import CORSMiddleware
@@ -52,7 +52,7 @@ async def health():
 
 # ── Room Analysis (Vision Agent) ────────────────────────────────────
 @app.post("/api/analyse-room")
-async def analyse_room_endpoint(file: UploadFile = File(...)):
+async def analyse_room_endpoint(file: UploadFile = File(...), user_token: str = Form(None)):
     """Upload a room photo → get AI analysis and save to history."""
     ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"}
     ct = (file.content_type or "").lower()
@@ -94,7 +94,7 @@ async def analyse_room_endpoint(file: UploadFile = File(...)):
         raise HTTPException(500, f"Analysis failed: {e}")
 
     # Save to database
-    save_session(session_id, analysis, image_filename)
+    save_session(session_id, analysis, image_filename, user_token=user_token)
 
     # Add session info to response
     analysis["session_id"] = session_id
@@ -181,9 +181,9 @@ async def speak_endpoint(payload: TTSRequest):
 
 # ── History ─────────────────────────────────────────────────────────
 @app.get("/api/history")
-async def get_history():
-    """Get all past sessions with room analyses and artwork results."""
-    sessions = get_all_sessions()
+async def get_history(user_token: str = Query(None)):
+    """Get past sessions filtered by user_token."""
+    sessions = get_all_sessions(user_token=user_token)
     return {"sessions": sessions}
 
 
@@ -206,6 +206,29 @@ async def delete_history_item(session_id: str):
             os.remove(image_path)
     delete_session(session_id)
     return {"deleted": True}
+
+
+# ── Link Checker ──────────────────────────────────────────────────
+import httpx
+import asyncio
+
+class LinkCheckRequest(BaseModel):
+    urls: list[str]
+
+@app.post("/api/check-links")
+async def check_links(payload: LinkCheckRequest):
+    """Check if artwork URLs are still live. Returns status for each URL."""
+    async def check_one(http, url):
+        try:
+            resp = await http.head(url, headers={"User-Agent": "Mozilla/5.0"})
+            return url, {"alive": resp.status_code < 400, "status": resp.status_code}
+        except Exception:
+            return url, {"alive": False, "status": 0}
+
+    async with httpx.AsyncClient(timeout=5, follow_redirects=True) as http:
+        checks = [check_one(http, url) for url in payload.urls[:20]]
+        pairs = await asyncio.gather(*checks)
+    return {"results": dict(pairs)}
 
 
 if __name__ == "__main__":

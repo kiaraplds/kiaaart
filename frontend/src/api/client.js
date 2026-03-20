@@ -1,8 +1,9 @@
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-export async function analyseRoom(file) {
+export async function analyseRoom(file, userToken) {
   const formData = new FormData();
   formData.append('file', file);
+  if (userToken) formData.append('user_token', userToken);
 
   const res = await fetch(`${API_URL}/api/analyse-room`, {
     method: 'POST',

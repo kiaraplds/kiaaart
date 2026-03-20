@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 
 const BUDGETS = ['Under £50', '£50–150', '£150–300', '£300–500', '£500+']
-const STYLES = ['Abstract', 'Botanical', 'Photography', 'Minimalist', 'Figurative', 'Landscape', 'Line Drawing', 'Mixed Media']
+const STYLES = ['Abstract', 'Botanical', 'Photography', 'Minimalist', 'Figurative', 'Landscape', 'Line Drawing', 'Mixed Media', 'Pop Art', 'Impressionist', 'Geometric', 'Watercolour', 'Street Art', 'Surrealist', 'Portraiture', 'Typography', 'Collage', 'Vintage']
 
 export default function ChatMessage({ message, onSearch, onSpeak, onUpload, onSave, savedIds }) {
   const { role, type } = message
@@ -98,7 +98,7 @@ function UserMessage({ message }) {
 
   return (
     <div className="flex justify-end">
-      <div className="max-w-[75%] px-4 py-2.5 bg-warm-800 text-cream rounded-2xl rounded-br-md text-sm leading-relaxed">
+      <div className="max-w-[75%] px-4 py-3 rounded-2xl rounded-br-md text-sm leading-relaxed shadow-sm" style={{ backgroundColor: '#3A5239', color: '#F4F7F4' }}>
         {message.content}
       </div>
     </div>
@@ -239,6 +239,7 @@ function AssistantMessage({ message, onSearch, onSpeak, onUpload, onSave, savedI
 function PreferencesCard({ content, analysis, onSearch }) {
   const [budget, setBudget] = useState('£50–150')
   const [selectedStyles, setSelectedStyles] = useState([])
+  const [customStyle, setCustomStyle] = useState('')
 
   const recs = analysis?.art_recommendations || {}
 
@@ -249,9 +250,12 @@ function PreferencesCard({ content, analysis, onSearch }) {
   }
 
   const handleSearch = () => {
+    const allStyles = [...selectedStyles]
+    if (customStyle.trim()) allStyles.push(customStyle.trim())
+
     onSearch({
       budget,
-      style: selectedStyles.length > 0 ? selectedStyles.join(', ') : recs.suggested_styles?.join(', ') || 'open to suggestions',
+      style: allStyles.length > 0 ? allStyles.join(', ') : recs.suggested_styles?.join(', ') || 'open to suggestions',
       colours: recs.suggested_colour_palette?.join(', ') || 'as recommended',
       size: recs.suggested_sizes?.join(', ') || 'as recommended',
       location: 'UK',
@@ -303,6 +307,20 @@ function PreferencesCard({ content, analysis, onSearch }) {
               </button>
             ))}
           </div>
+
+          {/* Custom style input */}
+          <div className="mt-3">
+            <input
+              type="text"
+              value={customStyle}
+              onChange={(e) => setCustomStyle(e.target.value)}
+              placeholder="Or describe what you're looking for..."
+              className="w-full px-4 py-2.5 rounded-xl text-xs bg-transparent border outline-none transition-all placeholder:text-[#5C7F5C]"
+              style={{ borderColor: 'rgba(120,160,120,0.35)', color: '#E3EBE3' }}
+              onFocus={(e) => e.target.style.borderColor = '#A3BBA3'}
+              onBlur={(e) => e.target.style.borderColor = 'rgba(120,160,120,0.35)'}
+            />
+          </div>
         </div>
 
         <button
@@ -319,6 +337,29 @@ function PreferencesCard({ content, analysis, onSearch }) {
 
 // ── Artwork Cards (inline in chat) ─────────────────────────────
 function ArtworkCards({ artworks, onSave, savedIds }) {
+  const [linkStatus, setLinkStatus] = useState({})
+  const [imgErrors, setImgErrors] = useState({})
+  const API_URL = import.meta.env.VITE_API_URL || ''
+
+  // Check links on mount
+  useState(() => {
+    const urls = []
+    artworks?.forEach(a => {
+      const parsed = typeof a === 'string' ? (() => { try { return JSON.parse(a) } catch { return {} } })() : a
+      if (parsed.url) urls.push(parsed.url)
+    })
+    if (urls.length > 0) {
+      fetch(`${API_URL}/api/check-links`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls }),
+      })
+        .then(r => r.json())
+        .then(data => setLinkStatus(data.results || {}))
+        .catch(() => {})
+    }
+  })
+
   if (!artworks || artworks.length === 0) return null
 
   return (
@@ -337,63 +378,94 @@ function ArtworkCards({ artworks, onSave, savedIds }) {
           parsed = artwork
         }
 
-        const { title, artist, price, size, url, platform, why_it_fits } = parsed
+        const { title, artist, price, size, url, image_url, platform, why_it_fits } = parsed
         const artworkId = url || `${title}-${artist}-${i}`
         const isSaved = savedIds?.has(artworkId)
+        const status = url ? linkStatus[url] : null
+        const linkDead = status && !status.alive
+
+        // Hide cards with broken links
+        if (linkDead) return null
 
         return (
-          <div key={i} className="p-4 bg-white border border-warm-200/60 rounded-xl shadow-sm hover:shadow-md hover:border-warm-300 transition-all group relative">
-            {/* Save button */}
-            {onSave && (
-              <button
-                onClick={() => onSave({ ...parsed, _id: artworkId })}
-                className={`absolute top-3 right-3 p-1.5 rounded-lg transition-all ${
-                  isSaved
-                    ? 'text-warm-800 bg-warm-100'
-                    : 'text-warm-300 opacity-0 group-hover:opacity-100 hover:text-warm-600 hover:bg-warm-50'
-                }`}
-                title={isSaved ? 'Saved' : 'Save to collection'}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-                  <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-                </svg>
-              </button>
+          <div key={i} className="bg-white border border-warm-200/60 hover:border-warm-300 rounded-xl shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+            {/* Artwork preview image */}
+            {image_url && !imgErrors[i] && (
+              <div className="w-full h-40 bg-warm-100 overflow-hidden">
+                <img
+                  src={image_url}
+                  alt={title || 'Artwork preview'}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={() => setImgErrors(prev => ({ ...prev, [i]: true }))}
+                />
+              </div>
             )}
 
-            <h4 className="font-display text-base font-semibold text-warm-800 group-hover:text-warm-900 leading-snug pr-8">
-              {title || 'Untitled'}
-            </h4>
-            {artist && <p className="text-xs text-warm-400 mt-0.5">{artist}</p>}
-
-            <div className="flex flex-wrap gap-1.5 mt-2.5">
-              {price && (
-                <span className="text-xs px-2 py-0.5 bg-green-50 border border-green-200/60 rounded-full text-green-700">
-                  {price}
-                </span>
+            <div className="p-4">
+              {/* Save button */}
+              {onSave && (
+                <button
+                  onClick={() => onSave({ ...parsed, _id: artworkId })}
+                  className={`absolute top-3 right-3 p-1.5 rounded-lg transition-all z-10 ${
+                    image_url && !imgErrors[i] ? 'bg-white/80 backdrop-blur-sm shadow-sm' : ''
+                  } ${
+                    isSaved
+                      ? 'text-warm-800 bg-warm-100'
+                      : 'text-warm-300 opacity-0 group-hover:opacity-100 hover:text-warm-600 hover:bg-warm-50'
+                  }`}
+                  title={isSaved ? 'Saved' : 'Save to collection'}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                  </svg>
+                </button>
               )}
-              {size && (
-                <span className="text-xs px-2 py-0.5 bg-warm-50 border border-warm-200/60 rounded-full text-warm-500">
-                  {size}
-                </span>
+
+              <h4 className="font-display text-base font-semibold text-warm-800 group-hover:text-warm-900 leading-snug pr-8">
+                {title || 'Untitled'}
+              </h4>
+              {artist && <p className="text-xs text-warm-400 mt-0.5">{artist}</p>}
+
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {price && (
+                  <span className="text-xs px-2 py-0.5 bg-green-50 border border-green-200/60 rounded-full text-green-700">
+                    {price}
+                  </span>
+                )}
+                {size && (
+                  <span className="text-xs px-2 py-0.5 bg-warm-50 border border-warm-200/60 rounded-full text-warm-500">
+                    {size}
+                  </span>
+                )}
+                {platform && (
+                  <span className="text-xs px-2 py-0.5 bg-blue-50 border border-blue-200/60 rounded-full text-blue-600">
+                    {platform}
+                  </span>
+                )}
+              </div>
+
+              {why_it_fits && (
+                <p className="text-xs text-warm-500 leading-relaxed mt-2 italic">
+                  "{why_it_fits}"
+                </p>
+              )}
+
+              {url && (
+                <div className="flex items-center gap-2 mt-2.5">
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block text-xs font-medium text-warm-600 hover:text-warm-800 transition-colors underline underline-offset-2 decoration-warm-300"
+                  >
+                    View on {platform || 'website'}
+                  </a>
+                  {status && status.alive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" title="Link verified" />
+                  )}
+                </div>
               )}
             </div>
-
-            {why_it_fits && (
-              <p className="text-xs text-warm-500 leading-relaxed mt-2 italic">
-                "{why_it_fits}"
-              </p>
-            )}
-
-            {url && (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-2.5 text-xs font-medium text-warm-600 hover:text-warm-800 transition-colors underline underline-offset-2 decoration-warm-300"
-              >
-                View on {platform || 'website'}
-              </a>
-            )}
           </div>
         )
       })}

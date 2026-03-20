@@ -24,14 +24,15 @@ def get_db():
             room_analysis TEXT,
             preferences TEXT,
             artworks TEXT,
-            summary TEXT
+            summary TEXT,
+            user_token TEXT
         )
     """)
     db.commit()
     return db
 
 
-def save_session(session_id: str, room_analysis: dict, image_filename: str = None) -> str:
+def save_session(session_id: str, room_analysis: dict, image_filename: str = None, user_token: str = None) -> str:
     """Save or update a session with room analysis."""
     db = get_db()
     existing = db.execute("SELECT id FROM sessions WHERE id = ?", (session_id,)).fetchone()
@@ -43,8 +44,8 @@ def save_session(session_id: str, room_analysis: dict, image_filename: str = Non
         )
     else:
         db.execute(
-            "INSERT INTO sessions (id, created_at, room_analysis, room_image_path) VALUES (?, ?, ?, ?)",
-            (session_id, datetime.now().isoformat(), json.dumps(room_analysis), image_filename)
+            "INSERT INTO sessions (id, created_at, room_analysis, room_image_path, user_token) VALUES (?, ?, ?, ?, ?)",
+            (session_id, datetime.now().isoformat(), json.dumps(room_analysis), image_filename, user_token)
         )
 
     db.commit()
@@ -83,10 +84,13 @@ def get_session(session_id: str) -> dict | None:
     }
 
 
-def get_all_sessions() -> list:
-    """Get all sessions, newest first."""
+def get_all_sessions(user_token: str = None) -> list:
+    """Get all sessions, newest first. Optionally filter by user_token."""
     db = get_db()
-    rows = db.execute("SELECT * FROM sessions ORDER BY created_at DESC").fetchall()
+    if user_token:
+        rows = db.execute("SELECT * FROM sessions WHERE user_token = ? ORDER BY created_at DESC", (user_token,)).fetchall()
+    else:
+        rows = db.execute("SELECT * FROM sessions ORDER BY created_at DESC").fetchall()
     db.close()
 
     return [{

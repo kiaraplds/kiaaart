@@ -4,10 +4,11 @@ const API_URL = import.meta.env.VITE_API_URL || ''
 
 export default function HistorySidebar({ isOpen, onToggle, onLoadSession, onNewChat, currentSessionId }) {
   const [sessions, setSessions] = useState([])
+  const userToken = localStorage.getItem('kiaaart-user-token') || ''
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/history`)
+      const res = await fetch(`${API_URL}/api/history?user_token=${encodeURIComponent(userToken)}`)
       const data = await res.json()
       setSessions(data.sessions || [])
     } catch (err) {

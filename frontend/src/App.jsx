@@ -28,6 +28,14 @@ function App() {
     } catch { return [] }
   })
   const [currentSessionId, setCurrentSessionId] = useState(null)
+  const [userToken] = useState(() => {
+    let token = localStorage.getItem('kiaaart-user-token')
+    if (!token) {
+      token = crypto.randomUUID()
+      localStorage.setItem('kiaaart-user-token', token)
+    }
+    return token
+  })
   const messagesEndRef = useRef(null)
   const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -70,7 +78,7 @@ function App() {
     setLoadingText('Studying your space')
 
     try {
-      const analysis = await analyseRoom(file)
+      const analysis = await analyseRoom(file, userToken)
 
       if (analysis.error) {
         setMessages(prev => [
@@ -147,16 +155,30 @@ function App() {
 
   // ── Chat ─────────────────────────────────────────────────────
   const handleChat = async (message) => {
-    setMessages(prev => [...prev, { role: 'user', type: 'text', content: message }])
+    setMessages(prev => [...prev, { role: 'user', type: 'chat', content: message }])
     setIsLoading(true)
     setLoadingText('Thinking')
 
     try {
       const result = await chat({ message, sessionId: chatSessionId, roomAnalysis })
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', type: 'text', content: result.response },
-      ])
+
+      if (result.artworks && result.artworks.length > 0) {
+        // Search was triggered — show artwork cards
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            type: 'artworks',
+            content: result.response || `I found ${result.artworks.length} pieces for you.`,
+            artworks: result.artworks,
+          },
+        ])
+      } else {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', type: 'text', content: result.response },
+        ])
+      }
     } catch (err) {
       setMessages(prev => [
         ...prev,
